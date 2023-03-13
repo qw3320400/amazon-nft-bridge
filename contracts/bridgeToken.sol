@@ -75,14 +75,14 @@ contract BridgeToken is ERC1155 {
         uint256[] memory amounts,
         bytes memory
     ) internal override {
-        if (to != address(0) && to != address(this)) {
+        if (to != address(this)) {
             return;
         }
         BurnInfo[] memory burnList = new BurnInfo[](ids.length);
         for (uint256 i = 0; i < ids.length; i++) {
             burnList[i] = BurnInfo(tokenToProduct[ids[i]], amounts[i], from);
         }
-        _burnBatch(from, ids, amounts);
+        safeBatchTransferFrom(from, address(0), ids, amounts, "");
         emit BatchBurn(from, burnList);
     }
 
