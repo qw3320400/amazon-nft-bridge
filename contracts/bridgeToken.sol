@@ -28,6 +28,10 @@ struct BurnInfo {
  */
 contract BridgeToken is ERC1155 {
 
+    bytes4 private constant _receivedSelector = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
+
+    bytes4 private constant _batchReceivedSelector = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
+
     string public name;
 
     string public symbol;
@@ -65,24 +69,52 @@ contract BridgeToken is ERC1155 {
     }
 
     /**
-     * override _afterTokenTransfer, burn token when it is sent back or to 0x0
+     * impliment IERC1155Receiver to receive token
+     * when received, burn the token, and relay back
      */
-    function _afterTokenTransfer(
+    function onERC1155Received(
         address,
         address from,
-        address to,
+        uint256 id,
+        uint256 value,
+        bytes calldata
+    ) external returns (bytes4) {
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = id;
+        uint256[] memory values = new uint256[](1);
+        values[0] = value;
+        _burnBatchToken(from, ids, values);
+        return _receivedSelector;
+    }
+
+    /**
+     * impliment IERC1155Receiver to receive token
+     * when received, burn the token, and relay back
+     */
+    function onERC1155BatchReceived(
+        address,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata
+    ) external returns (bytes4) {
+        _burnBatchToken(from, ids, values);
+        return _batchReceivedSelector;
+    }
+
+    /**
+     * burn batch token and emit event
+     */
+    function _burnBatchToken(
+        address from,
         uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory
-    ) internal override {
-        if (to != address(this)) {
-            return;
-        }
+        uint256[] memory values
+    ) private {
         BurnInfo[] memory burnList = new BurnInfo[](ids.length);
         for (uint256 i = 0; i < ids.length; i++) {
-            burnList[i] = BurnInfo(tokenToProduct[ids[i]], amounts[i], from);
+            burnList[i] = BurnInfo(tokenToProduct[ids[i]], values[i], from);
         }
-        safeBatchTransferFrom(from, address(0), ids, amounts, "");
+        _burnBatch(address(this), ids, values);
         emit BatchBurn(from, burnList);
     }
 
