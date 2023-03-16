@@ -50,8 +50,8 @@ contract BridgeToken is ERC1155 {
         relayer = relayer_;
     }
 
-    modifier onlyRelayer(address relayer_) {
-        require(relayer == relayer_, "only relayer");
+    modifier onlyRelayer() {
+        require(relayer == msg.sender, "only relayer");
         _;
     }
 
@@ -59,7 +59,7 @@ contract BridgeToken is ERC1155 {
      * relayer use this funtion to mint corespon token of real-world asset
      * @param mintList mint info list
      */
-    function batchMint(MintInfo[] calldata mintList) external onlyRelayer(msg.sender) {
+    function batchMint(MintInfo[] calldata mintList) external onlyRelayer() {
         for (uint256 i = 0; i < mintList.length; i++) {
             uint tokenID = getBridgeTokenID(mintList[i].product);
             _mint(mintList[i].to, tokenID, mintList[i].amount, "");
